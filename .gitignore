@@ -1,4 +1,11 @@
+# System
 .DS_Store
+
+# Sqlite database
+*.db
+
+# VS Code
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
