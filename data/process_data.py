@@ -26,6 +26,7 @@ def load_data(messages_filepath, categories_filepath):
 
 def clean_data(df):
     df = df.drop_duplicates(keep=False) 
+    df = df.fillna(0)
 
     return df
 

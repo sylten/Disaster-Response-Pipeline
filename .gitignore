@@ -1,8 +1,9 @@
 # System
 .DS_Store
 
-# Sqlite database
-*.db
+# Data and models
+data/*.db
+models/*.pkl
 
 # VS Code
 .vscode
