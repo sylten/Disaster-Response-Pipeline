@@ -14,8 +14,8 @@ def load_data(messages_filepath, categories_filepath):
 
     categories_df = pd.DataFrame.from_records([
         dict(split_keyvalue(keyvalue) for keyvalue in category) 
-            for category in categories.categories.str.split(';')
-    ]).fillna(0)
+            for category in df.categories.str.split(';')
+    ])
 
     df = df.drop(columns=['categories'], axis=1)
 
