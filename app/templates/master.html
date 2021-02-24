@@ -65,7 +65,7 @@
         <div class="page-header">
             <h1 class="text-center">Overview of Training Dataset</h1>
             <label>Show most common words for:</label><br/>
-            <select id="label-select">
+            <select id="category-select">
                 <option value="">All</option>
             </select>
         </div>
@@ -88,22 +88,22 @@
     }
 
     $(document).ready(() => {
-        labels = {{labels | safe}};
-        labels.sort().forEach(label => {
-            $('#label-select').append(new Option(label, label));
+        categories = {{categories | safe}};
+        categories.sort().forEach(category => {
+            $('#category-select').append(new Option(category, category));
         });
 
         const urlParams = new URLSearchParams(window.location.search);
-        const label = urlParams.get('label');
-        if (label) {
-            $('#label-select').val(label);
+        const category = urlParams.get('category');
+        if (category) {
+            $('#category-select').val(category);
         }
 
-        $('#label-select').change(event => {
+        $('#category-select').change(event => {
             const value = event.target.value;
             const baseUrl = location.href.substr(0, location.href.indexOf('?'));
             if (value) {
-                location.href = baseUrl + '?label=' + value;
+                location.href = baseUrl + '?category=' + value;
             } else {
                 location.href = baseUrl;
             }

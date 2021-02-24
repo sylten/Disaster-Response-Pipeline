@@ -1,60 +1,52 @@
 import time
-import joblib
 import nltk
-import numpy as np
 nltk.download(['punkt', 'stopwords'])
 
 import sys
 import pandas as pd
 import re
 import pickle
-import string
 from tabulate import tabulate
 from sqlalchemy import create_engine
 from nltk.tokenize import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
-from nltk import pos_tag, ne_chunk
-from sklearn.metrics import f1_score
-from sklearn.metrics import precision_score
-from sklearn.metrics import recall_score
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.multioutput import MultiOutputClassifier
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.naive_bayes import ComplementNB
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.neighbors import KNeighborsClassifier
 
 debug_tokenize = False
 
 def load_data(database_filepath):
+    '''
+    Description: Load disaster response messages and categories from SQLite database.
+
+    Arguments:
+        database_filepath (string): File path to databse to load from.
+
+    Returns:
+        list: List of messages
+        list: List of lists of category values
+        list: List of categories
+    '''
+
     engine = create_engine("sqlite:///" + database_filepath)
     df = pd.read_sql_table('Messages', con = engine)
     # df = df[100:200]
-    
-    X = df.message.values
 
     categories_df = df.drop(columns=['id', 'message', 'original', 'genre'], axis=1)
     categories_df = categories_df.fillna(0)
-    Y = categories_df.values
     category_names = categories_df.columns.values
 
-    return X, Y, category_names
+    X = df.message.values
+    Y = categories_df.values
 
-def remove_named_entities(tokens):
-    tagged = nltk.pos_tag_sents([tokens])
-    # print(tagged)
-    chunked = nltk.ne_chunk_sents(tagged)
-    # print(chunked)
-    def extract_nonentities(tree):
-        return [leaf[0] for leaf in tree if type(leaf) != nltk.Tree]
-    
-    return extract_nonentities(next(chunked))
+    return X, Y, category_names
 
 lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
@@ -71,13 +63,8 @@ def tokenize(text):
     if debug_tokenize:
         print(tokens)
 
-    # tokens = remove_named_entities(tokens)
-
     if debug_tokenize:
         print(tokens)
-    
-    # convert to lowercase, (done on tokens because it needs to be done after removing named entities)
-    # tokens = [t.lower() for t in tokens]
     
     # remove stop words
     filtered_tokens = [w for w in tokens if not w in stop_words] 
@@ -103,9 +90,7 @@ def build_model():
 
     parameters = {
         'vect__max_features': (1000, 10000),
-        'vect__min_df': [1, 2, 5],
-        # 'tfidf__use_idf': (True, False),  
-        # 'clf__estimator__alpha': [1, 5],
+        'vect__min_df': [1, 2, 5]
     }
 
     cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1)
@@ -117,23 +102,7 @@ def evaluate_model(model, x_test, y_test, category_names):
     print(model.best_params_)
 
     y_pred = model.predict(x_test)
-    print(y_test.shape, y_pred.shape)
-    # y_test = np.vstack(y_test)
-    # y_pred = np.vstack(y_pred)
 
-    # rows = []
-    # for ix, column in enumerate(category_names):
-    #     column_y_test = y_test[:,ix]
-    #     column_y_pred = y_pred[:,ix]
-    #     rows.append([
-    #         column, 
-    #         round(f1_score(column_y_test, column_y_pred, average='macro'), 2),
-    #         round(precision_score(column_y_test, column_y_pred, average='macro'), 2),
-    #         round(recall_score(column_y_test, column_y_pred, average='macro'), 2)
-    #     ])
-
-    # print(tabulate(rows, headers=['Category', 'F1-score', 'Precision', 'Recall'], tablefmt='orgtbl'))
-    # print(confusion_matrix(y_test.argmax(axis=1), y_pred.argmax(axis=1)))
     print(classification_report(y_test, y_pred, target_names=category_names))
     print(accuracy_score(y_test, y_pred))
 
@@ -164,8 +133,6 @@ def main():
         start_time = time.time()
         model.fit(X_train, Y_train)
         print('  Training took',round((time.time()-start_time), 2), 'seconds')
-
-        #model = joblib.load(model_filepath)
                 
         print('Evaluating model...')
         evaluate_model(model, x_test, y_test, category_names)

@@ -5,13 +5,12 @@ import sys
 import os
 import re
 
-from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
 from flask import Flask
-from flask import render_template, request, jsonify
-from plotly.graph_objs import Bar, Scatter
+from flask import render_template, request
+from plotly.graph_objs import Bar
 import joblib
 from sqlalchemy import create_engine
 
@@ -27,11 +26,22 @@ df = pd.read_sql_table('Messages', engine)
 # load model
 model = joblib.load("../models/classifier.pkl")
 
-def get_top_words(label = 'cold', top_n = 10):
+def get_top_words(category = None, top_n = 10):
+    '''
+    Description: finds the most common words used in messages flagged with a certain category.
+
+    Arguments:
+        category (string): Category of messages to count words in. Default=None (count all categories)
+        top_n (int): Number of top results to return
+
+    Returns:
+        list: List of (category, count) tuples.
+    '''
+
     # query all messages from database
     messages_df = df
-    if label:
-        messages_df = messages_df[messages_df[label] == 1]
+    if category:
+        messages_df = messages_df[messages_df[category] == 1]
 
     text = messages_df.message.str.cat(sep=" ")
     
@@ -62,10 +72,10 @@ def get_top_words(label = 'cold', top_n = 10):
 @app.route('/index')
 def index():
 
-    label = request.args.get('label', '') 
+    category = request.args.get('category', '') 
 
     # extract data needed for visuals
-    top_words = get_top_words(label)
+    top_words = get_top_words(category)
     word_counts = []
     words = []
     for w in top_words:
@@ -73,11 +83,11 @@ def index():
         word_counts.append(w[1])
 
     words_title = 'Most common words'
-    if label:
-        words_title += ' for label ' + label
+    if category:
+        words_title += ' for category ' + category
 
-    labels_counts = df.drop(columns=['id', 'message', 'original', 'genre']).sum().sort_values()
-    labels = list(labels_counts.index)
+    categories_counts = df.drop(columns=['id', 'message', 'original', 'genre']).sum().sort_values()
+    categories = list(categories_counts.index)
 
     # create visuals
     graphs = [
@@ -102,16 +112,16 @@ def index():
         {
             'data': [
                 Bar(
-                    x=labels_counts,
-                    y=labels,
+                    x=categories_counts,
+                    y=categories,
                     orientation='h',
                 )
             ],
 
             'layout': {
-                'title': 'Distribution of Message Labels',
+                'title': 'Distribution of Message Categories',
                 'yaxis': {
-                    'title': "Label"
+                    'title': "Category"
                 },
                 'xaxis': {
                     'title': "Count"
@@ -126,7 +136,7 @@ def index():
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
     
     # render web page with plotly graphs
-    return render_template('master.html', ids=ids, graphJSON=graphJSON, labels=labels)
+    return render_template('master.html', ids=ids, graphJSON=graphJSON, categories=categories)
 
 
 # web page that handles user query and displays model results

@@ -3,6 +3,17 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
+    '''
+    Description: Loads disaster response messages from csv files and merges them into a data frame.
+
+    Arguments:
+        messages_filepath (string): Path to messages csv file.
+        categories_fiepath (string): Path to categorues csv file.
+
+    Returns:
+        DataFrame: Merged dataframe
+    '''
+
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
     
@@ -25,6 +36,16 @@ def load_data(messages_filepath, categories_filepath):
 
 
 def clean_data(df):
+    '''
+    Description: Drops duplicates.
+
+    Arguments:
+        df (DataFrame): dataframe to clean. 
+
+    Returns:
+        DataFrame: Cleaned dataframe
+    '''
+
     df = df.drop_duplicates(keep=False) 
     df = df.fillna(0)
 
@@ -32,12 +53,29 @@ def clean_data(df):
 
 
 def save_data(df, database_filename):
+    '''
+    Description: Saves dataframe to SQLite database, overwriting existing data.
+
+    Arguments:
+        df (DataFrame): dataframe to save.
+        database_filename (string): File path to databse to save to.
+
+    Returns:
+        None
+    '''
+
     engine = create_engine("sqlite:///" + database_filename)
     df.to_sql('Messages', engine, index=False, if_exists="replace")
-    pass  
 
 
 def main():
+    '''
+    Description: Loads disaster response messages and categories from csv files, cleans and saves to database.
+
+    Returns:
+        None
+    '''
+
     if len(sys.argv) == 4:
 
         messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
@@ -64,50 +102,4 @@ def main():
 
 
 if __name__ == '__main__':
-    #main()
-    engine = create_engine('sqlite:///../data/DisasterResponse.db')
-    df = pd.read_sql_table('Messages', engine)
-    # df[df[['id', 'message', 'original', 'genre']]]
-    # print(df.drop(columns=['id', 'message', 'original', 'genre']).sum())
-    # genre_counts = df.groupby('genre').count()['message']
-    # genre_names = list(genre_counts.index)
-    # print(genre_counts)
-
-    # word_list = 
-    # word_counter = {}
-    # for word in word_list:
-    #     if word in word_counter:
-    #         word_counter[word] += 1
-    #     else:
-    #         word_counter[word] = 1
-    
-    # popular_words = sorted(word_counter, key = word_counter.get, reverse = True)
-    
-    # top_3 = popular_words[:3]
-    
-    # print(top_3)
-
-    with engine.connect() as con:
-        rs = con.execute("select GROUP_CONCAT(message, ' ') from messages")
-        import re
-        from nltk.tokenize import word_tokenize
-        from nltk.corpus import stopwords
-        text = rs.next()[0]
-        text = re.sub(f"[^A-Za-z]", " ", text).lower()
-        word_list = word_tokenize(text)
-        stop_words = set(stopwords.words('english'))
-        word_list = [w for w in word_list if not w in stop_words] 
-
-        word_counter = {}
-        for word in word_list:
-            if word in word_counter:
-                word_counter[word] += 1
-            else:
-                word_counter[word] = 1
-        
-        # popular_words = sorted(word_counter, key = word_counter.get, reverse = True)
-        popular_words = sorted(word_counter.items(), key=lambda tup: tup[1], reverse=True)
-
-        top_3 = popular_words[:10]
-        
-        print(top_3)
+    main()
