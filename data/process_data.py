@@ -10,7 +10,7 @@ def load_data(messages_filepath, categories_filepath):
 
     def split_keyvalue(keyvalue):
         key, val = keyvalue.split('-', 1)
-        return key, int(val)
+        return key, 1 if val == "1" else 0
 
     categories_df = pd.DataFrame.from_records([
         dict(split_keyvalue(keyvalue) for keyvalue in category) 
@@ -64,4 +64,50 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    engine = create_engine('sqlite:///../data/DisasterResponse.db')
+    df = pd.read_sql_table('Messages', engine)
+    # df[df[['id', 'message', 'original', 'genre']]]
+    # print(df.drop(columns=['id', 'message', 'original', 'genre']).sum())
+    # genre_counts = df.groupby('genre').count()['message']
+    # genre_names = list(genre_counts.index)
+    # print(genre_counts)
+
+    # word_list = 
+    # word_counter = {}
+    # for word in word_list:
+    #     if word in word_counter:
+    #         word_counter[word] += 1
+    #     else:
+    #         word_counter[word] = 1
+    
+    # popular_words = sorted(word_counter, key = word_counter.get, reverse = True)
+    
+    # top_3 = popular_words[:3]
+    
+    # print(top_3)
+
+    with engine.connect() as con:
+        rs = con.execute("select GROUP_CONCAT(message, ' ') from messages")
+        import re
+        from nltk.tokenize import word_tokenize
+        from nltk.corpus import stopwords
+        text = rs.next()[0]
+        text = re.sub(f"[^A-Za-z]", " ", text).lower()
+        word_list = word_tokenize(text)
+        stop_words = set(stopwords.words('english'))
+        word_list = [w for w in word_list if not w in stop_words] 
+
+        word_counter = {}
+        for word in word_list:
+            if word in word_counter:
+                word_counter[word] += 1
+            else:
+                word_counter[word] = 1
+        
+        # popular_words = sorted(word_counter, key = word_counter.get, reverse = True)
+        popular_words = sorted(word_counter.items(), key=lambda tup: tup[1], reverse=True)
+
+        top_3 = popular_words[:10]
+        
+        print(top_3)

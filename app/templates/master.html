@@ -11,6 +11,14 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/1.33.1/plotly-basic.min.js"></script>
+    <style>
+        .list-group {
+            columns: 4;
+        }
+        .js-plotly-plot {
+            margin-bottom: 4rem;
+        }
+    </style>
 </head>
 
 <body>
@@ -56,12 +64,20 @@
     {% block content %}
         <div class="page-header">
             <h1 class="text-center">Overview of Training Dataset</h1>
+            <label>Show most common words for:</label><br/>
+            <select id="label-select">
+                <option value="">All</option>
+            </select>
         </div>
     {% endblock %}
 
-    {% for id in ids %}
-        <div id="{{id}}"></div>
-    {% endfor %}
+    <div class="row">
+        {% for id in ids %}
+            <div class="col-lg-6">
+                <div id="{{id}}"></div>
+            </div>
+        {% endfor %}
+    </div>
 </div>
 
 <script type="text/javascript">
@@ -70,6 +86,29 @@
     for(let i in graphs) {
         Plotly.plot(ids[i], graphs[i].data, graphs[i].layout);
     }
+
+    $(document).ready(() => {
+        labels = {{labels | safe}};
+        labels.sort().forEach(label => {
+            $('#label-select').append(new Option(label, label));
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const label = urlParams.get('label');
+        if (label) {
+            $('#label-select').val(label);
+        }
+
+        $('#label-select').change(event => {
+            const value = event.target.value;
+            const baseUrl = location.href.substr(0, location.href.indexOf('?'));
+            if (value) {
+                location.href = baseUrl + '?label=' + value;
+            } else {
+                location.href = baseUrl;
+            }
+        })
+    });
 </script>
 
 </body>
