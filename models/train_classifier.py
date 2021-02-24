@@ -52,6 +52,16 @@ lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
 
 def tokenize(text):
+    '''
+    Description: Removes special characters and stop words, tokenizes and lemmetizes text.
+
+    Arguments:
+        text (string): Text to process.
+
+    Returns:
+        string: Tokenized text.
+    '''
+
     # remove non-letter characters
     filtered_text = re.sub(f"[^A-Za-z]", " ", text).lower()
 
@@ -81,6 +91,13 @@ def tokenize(text):
 
 
 def build_model():
+    '''
+    Description: Create machine learning model to classify text.
+
+    Returns:
+        GridSearchCV: Grid search optomized model
+    '''
+
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize, ngram_range=(1, 2))),
         ('tfidf', TfidfTransformer()),
@@ -99,6 +116,19 @@ def build_model():
 
 
 def evaluate_model(model, x_test, y_test, category_names):
+    '''
+    Description: Evaluates and prints machine learning model's precision, recall and f1-score for each class. As well as accuracy.
+
+    Arguments:
+        model: Model to evaluate
+        x_test: Test list of tokenized messages
+        y_test: List of true test categories
+        category_names: Names of test categories
+
+    Returns:
+        None
+    '''
+
     print(model.best_params_)
 
     y_pred = model.predict(x_test)
@@ -108,10 +138,28 @@ def evaluate_model(model, x_test, y_test, category_names):
 
 
 def save_model(model, model_filepath):
+    '''
+    Description: Save model as pickle file.
+
+    Arguments:
+        model: Model to save
+        model_filepath: Path to save file to
+
+    Returns:
+        None
+    '''
+
     pickle.dump(model, open(model_filepath, 'wb'))
 
 
 def main():
+    '''
+    Description: Loads data from database, creates model, evaluates and saves to pickle file.
+
+    Returns:
+        None
+    '''
+
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
