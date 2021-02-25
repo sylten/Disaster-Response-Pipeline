@@ -14,22 +14,38 @@ def load_data(messages_filepath, categories_filepath):
         DataFrame: Merged dataframe
     '''
 
+    # read messages and categories
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
     
+    # merge into single dataframe
     df = pd.merge(messages, categories, on="id")
 
     def split_keyvalue(keyvalue):
-        key, val = keyvalue.split('-', 1)
-        return key, 1 if val == "1" else 0
+        '''
+        Description: Split string of format key-value into string and binary integer value
 
+        Arguments:
+            keyvalue (string): String to split
+
+        Returns:
+            key: The key part
+            value: The binary value part
+        '''
+        key, value = keyvalue.split('-', 1)
+        return key, 1 if value == "1" else 0
+
+    # categories are all contained in a single string of the format category1-value1;category2-value2
+    # split the string into a df with categories as columns
     categories_df = pd.DataFrame.from_records([
         dict(split_keyvalue(keyvalue) for keyvalue in category) 
             for category in df.categories.str.split(';')
     ])
 
+    # remove the unformated categories column
     df = df.drop(columns=['categories'], axis=1)
 
+    # add the new category columns
     df = pd.concat([df, categories_df], axis=1)
 
     return df
@@ -47,7 +63,6 @@ def clean_data(df):
     '''
 
     df = df.drop_duplicates(keep=False) 
-    df = df.fillna(0)
 
     return df
 

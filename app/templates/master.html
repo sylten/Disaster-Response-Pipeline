@@ -12,6 +12,12 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/1.33.1/plotly-basic.min.js"></script>
     <style>
+        form>div {
+            display: flex;
+        }
+        form button {
+            margin-left: 2rem;
+        }
         .list-group {
             columns: 4;
         }
@@ -47,8 +53,8 @@
         <div class="row">
             <div class="col-lg-12 form-group-lg">
                 <form action="/go" method="get">
-                    <input type="text" class="form-control form-control-lg" name="query" placeholder="Enter a message to classify">
-                    <div class="col-lg-offset-5">
+                    <div>
+                        <input type="text" class="form-control form-control-lg" name="query" placeholder="Enter a message to classify">
                         <button type="submit" class="btn btn-lg btn-success">Classify Message</button>
                     </div>
                 </form>

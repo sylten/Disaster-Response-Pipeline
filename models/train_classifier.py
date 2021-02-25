@@ -20,8 +20,6 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.neighbors import KNeighborsClassifier
 
-debug_tokenize = False
-
 def load_data(database_filepath):
     '''
     Description: Load disaster response messages and categories from SQLite database.
@@ -35,12 +33,12 @@ def load_data(database_filepath):
         list: List of categories
     '''
 
+    # load data from provided sqlite db
     engine = create_engine("sqlite:///" + database_filepath)
     df = pd.read_sql_table('Messages', con = engine)
-    # df = df[100:200]
 
+    # extract categories
     categories_df = df.drop(columns=['id', 'message', 'original', 'genre'], axis=1)
-    categories_df = categories_df.fillna(0)
     category_names = categories_df.columns.values
 
     X = df.message.values
@@ -48,6 +46,7 @@ def load_data(database_filepath):
 
     return X, Y, category_names
 
+url_regex = 'http[s]?(?:://|\s:\s//|\s)(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
 
@@ -62,30 +61,25 @@ def tokenize(text):
         string: Tokenized text.
     '''
 
+    # replace URL:s with placeholder
+    detected_urls = re.findall(url_regex, text)
+    for url in detected_urls:
+        text = text.replace(url, "urlplaceholder")
+        
     # remove non-letter characters
     filtered_text = re.sub(f"[^A-Za-z]", " ", text).lower()
 
     # remove single characters
     filtered_text = re.sub(r'\s+[a-zA-Z]\s+', ' ', filtered_text)
 
+    # tokenize
     tokens = word_tokenize(filtered_text)
-    
-    if debug_tokenize:
-        print(tokens)
-
-    if debug_tokenize:
-        print(tokens)
     
     # remove stop words
     filtered_tokens = [w for w in tokens if not w in stop_words] 
     
-    if debug_tokenize:
-        print(filtered_tokens)
-    
+    # lemmatize
     lemmatized_tokens = [lemmatizer.lemmatize(t) for t in filtered_tokens]
-    
-    if debug_tokenize:
-        print()
     
     return lemmatized_tokens
 
@@ -95,9 +89,10 @@ def build_model():
     Description: Create machine learning model to classify text.
 
     Returns:
-        GridSearchCV: Grid search optomized model
+        GridSearchCV: Grid search optimized model
     '''
 
+    # create pipeline
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize, ngram_range=(1, 2))),
         ('tfidf', TfidfTransformer()),
@@ -105,11 +100,14 @@ def build_model():
         ('clf', MultiOutputClassifier(KNeighborsClassifier()))
     ])
 
+    # parameters to tune
     parameters = {
         'vect__max_features': (1000, 10000),
-        'vect__min_df': [1, 2, 5]
+        'vect__min_df': [1, 2, 5],
+        'clf__estimator__n_neighbors': [2, 5, 10]
     }
 
+    # find optimal parameters
     cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1)
     
     return cv
@@ -129,12 +127,15 @@ def evaluate_model(model, x_test, y_test, category_names):
         None
     '''
 
+    # print optimal parameters found by grid search
     print(model.best_params_)
 
+    # create prediction from test set
     y_pred = model.predict(x_test)
 
+    # print evaluation metrics for each category
     print(classification_report(y_test, y_pred, target_names=category_names))
-    print(accuracy_score(y_test, y_pred))
+    print("Accuracy: ", accuracy_score(y_test, y_pred))
 
 
 def save_model(model, model_filepath):
@@ -162,25 +163,20 @@ def main():
 
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
+        
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
+
+        # split data into train and test sets
         X_train, x_test, Y_train, y_test = train_test_split(X, Y, test_size=0.3, random_state=3)
         
-        print(len(X))
-        if debug_tokenize:
-            start_time = time.time()
-            for i in range(10):
-                tokenize(X[i])
-            print('  Tokenizing took',round((time.time()-start_time), 10), 'seconds')
-            exit()
-
         print('Building model...')
         model = build_model()
         
         print('Training model...')
         start_time = time.time()
         model.fit(X_train, Y_train)
-        print('  Training took',round((time.time()-start_time), 2), 'seconds')
+        print('  Training took', round((time.time() - start_time), 2), 'seconds')
                 
         print('Evaluating model...')
         evaluate_model(model, x_test, y_test, category_names)
